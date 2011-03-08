@@ -2,5 +2,7 @@
 # $FreeBSD$
 
 PROG=	who
+LDADD+=	-L/usr/local/lib -lGeoIP
+CFLAGS=	-I/usr/local/include
 
 .include <bsd.prog.mk>
