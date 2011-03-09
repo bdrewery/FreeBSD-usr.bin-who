@@ -68,6 +68,7 @@ static int	uflag;			/* Show idle time */
 
 #define W_DISPGEOSIZE 20
 const char* geoiplookup(const char*);
+int should_show_user(const char*);
 
 int
 main(int argc, char *argv[])
@@ -175,6 +176,9 @@ row(const struct utmpx *ut)
 	struct tm *tm;
 	char state;
 
+        if (!should_show_user(ut->ut_user))
+          return;
+
 	if (d_first < 0)
 		d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
 
@@ -257,6 +261,8 @@ quick(void)
 	while ((utx = getutxent()) != NULL) {
 		if (utx->ut_type != USER_PROCESS)
 			continue;
+		if (!should_show_user(utx->ut_user))
+			continue;
 		printf("%-16s", utx->ut_user);
 		if (++col < ncols / (16 + 1))
 			putchar(' ');
@@ -300,6 +306,22 @@ whoami(void)
 	strlcpy(ut.ut_user, name, sizeof ut.ut_user);
 	gettimeofday(&ut.ut_tv, NULL);
 	row(&ut);
+}
+
+int should_show_user(const char *name) {
+	static struct passwd *pw = NULL;
+	if (name == NULL)
+		return 0;
+
+	if (geteuid() == 0)
+		return 1;
+
+	if (pw == NULL)
+		pw = getpwuid(getuid());
+
+	if (!strncmp(name, pw->pw_name, sizeof(((struct utmpx*)0)->ut_user)))
+		return 1;
+	return 0;
 }
 
 const char* geoiplookup(const char *name) {
